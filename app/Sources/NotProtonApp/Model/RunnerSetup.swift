@@ -12,7 +12,7 @@ enum RunnerSetup {
 
         var label: String {
             switch self {
-            case .cloning: "Copying CrossOver"
+            case .cloning: "Copying Wine engine"
             case .staging: "Patching"
             case .patching: "Installing compatibility tool"
             case .finished: "Done"
@@ -34,7 +34,7 @@ enum RunnerSetup {
         replacingExisting: Bool = false,
         report: @Sendable (Phase) -> Void = { _ in }
     ) throws -> Outcome {
-        try CrossOverLicense.requireValid(for: install)
+        if install.provider == .crossOver { try CrossOverLicense.requireValid(for: install) }
 
         report(.cloning)
         let build = try RunnerInstaller.clone(from: install, replacingExisting: replacingExisting)
@@ -67,9 +67,9 @@ enum RunnerSetup {
         }
 
         let root = SupportPaths.clonedRoot(forBuild: build.id, runners: runners)
-        let status = license(root)
-        guard status.licensed else {
-            throw StepFailure(step: "Verify CrossOver license", detail: status.detail)
+        let status = build.provider == .highball ? nil : license(root)
+        guard status?.licensed != false else {
+            throw StepFailure(step: "Verify CrossOver license", detail: status!.detail)
         }
 
         try verify(build, root)

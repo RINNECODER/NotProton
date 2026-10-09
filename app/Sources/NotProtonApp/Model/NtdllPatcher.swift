@@ -52,6 +52,19 @@ enum NtdllPatcher {
 
 
     static let byBuild: [String: [NtdllPatch]] = [
+        "highball-wine11-r23": [
+            NtdllPatch(arch: .x86_64Windows, payloadResource: "detour2-highball",
+                payloadSHA256: "ba2e0a2cb0b2dc982a85ac935475818cc42797303849690c0878d3253df89fee",
+                caveRVA: 0x7a0a0, payloadRVA: 0x7a0a0,
+                hooks: [NtdllHook(rva: 0x484f3, stolen: [0x48, 0x83, 0xbc, 0x24, 0xf0, 0, 0, 0, 0])],
+                caveSize: 3936, cavePad: 0, machine: 0x8664, magic: 0x20b, imageBase: 0x1_7000_0000),
+            NtdllPatch(arch: .i386Windows, payloadResource: "detour32-highball",
+                payloadSHA256: "811631f8deb73fbad490d47ef53cc5a0a11a2bf11eb0988ccf4c51473a45fe1b",
+                caveRVA: 0xaf000, payloadRVA: 0xaf000,
+                hooks: [NtdllHook(rva: 0x453d0, stolen: [0xf6, 0x45, 0x10, 0x01, 0x75, 0x26])],
+                caveSize: 0x1000, cavePad: 0, machine: 0x14c, magic: 0x10b,
+                imageBase: 0x7bc0_0000, placement: .section),
+        ],
         "27.0.0.40921": [
             NtdllPatch(
                 arch: .x86_64Windows,

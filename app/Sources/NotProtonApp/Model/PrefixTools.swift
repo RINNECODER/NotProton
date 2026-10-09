@@ -117,6 +117,9 @@ enum PrefixTools {
         environment["WINEPREFIX"] = prefix.pfx.path(percentEncoded: false)
         environment["WINEMSYNC"] = syncBackend(prefix: prefix)
         environment["PATH"] = "\(root)/bin:" + (environment["PATH"] ?? "/usr/bin:/bin")
+        if runner.deletingLastPathComponent().lastPathComponent.hasPrefix("crossover-highball-") {
+            environment.merge(HighballSource.runtimeEnvironment(runner: runner)) { $1 }
+        }
         return environment
     }
 
@@ -137,6 +140,10 @@ enum PrefixTools {
             fm.isExecutableFile(atPath: url.path(percentEncoded: false))
         }
 
+        if runner.deletingLastPathComponent().lastPathComponent.hasPrefix("crossover-highball-") {
+            return WineLayout(loader: bin.appending(path: "wine"), server: bin.appending(path: "wineserver"),
+                              unixDir: runner.appending(path: "lib/wine/x86_64-unix"))
+        }
         let arm = runner.appending(path: "lib/wine/aarch64-unix")
         let armLoader = arm.appending(path: "wine.app/Contents/MacOS/wine")
         let armServer = bin.appending(path: "wineserver-arm64")

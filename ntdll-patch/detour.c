@@ -161,7 +161,11 @@ static int wm_is_sc64(void *wm)
 }
 
 // build_module detour
-void detour_build_module(struct ctx *c, void *wm, void *load_path)
+void detour_build_module(struct ctx *c, void *wm, void *load_path
+#ifdef MODULE_FLAGS_SLOT
+                         , u32 *module_flags
+#endif
+                         )
 {
     u8 *sc64, *lsteam;
 
@@ -179,4 +183,8 @@ void detour_build_module(struct ctx *c, void *wm, void *load_path)
     setup_trampolines(c, sc64, lsteam);
 
     *WM_FLAGS(wm) |= LDR_DONT_RESOLVE_REFS;
+#ifdef MODULE_FLAGS_SLOT
+    // Wine 11.0 gates import resolution on the build_module flags argument.
+    *module_flags |= MODULE_FLAGS_BIT;
+#endif
 }

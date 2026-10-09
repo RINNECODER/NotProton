@@ -11,6 +11,19 @@ PAYLOAD = {0x8664: 864, 0x14c: 1376, 0xaa64: 868}  # detour2.bin, detour32.bin, 
 # Keyed by input sha256 so the comparison only runs against the build the tree pins, so a
 # new build will report derived values rather than a wall of expected mismatches
 PINNED = {
+    '513fa65b55c2c064e174fc9c797af75eced97c1de992aa7e4f7e228aa06e2e5b':
+        {'hookRVA': 0x484f3, 'stolen': '4883bc24f000000000', 'caveRVA': 0x7a0a0,
+         'wm': 'r15', 'load_path': 0xd0, 'module_flags_slot': 0xf8, 'module_flags_bit': 1,
+         'payload': 'ba2e0a2cb0b2dc982a85ac935475818cc42797303849690c0878d3253df89fee',
+         'exports': {'LdrGetDllHandle': 0x170014fe0, 'LdrLoadDll': 0x170015b50,
+                     'NtProtectVirtualMemory': 0x17000f380}},
+    'ef5fec28279a8998c5fafbe68738b6b2658457d0bdc8eb03763124f8c2ef7733':
+        {'hookRVA': 0x453d0, 'stolen': 'f64510017526', 'caveRVA': 0xaf000,
+         'caveSize': 4096, 'wm': 'ebx', 'load_path': -0x3c,
+         'payload': '811631f8deb73fbad490d47ef53cc5a0a11a2bf11eb0988ccf4c51473a45fe1b',
+         'exports': {'LdrGetDllHandle': 0x7bc12900, 'LdrLoadDll': 0x7bc134a0,
+                     'NtProtectVirtualMemory': 0x7bc0d584, 'NtOpenFile': 0x7bc0d3b4,
+                     'NtReadFile': 0x7bc0d0e4, 'NtClose': 0x7bc0d174}},
     '04c7200b6645decb7c2d1ba6b0195abc9af83257072558d11aa72cc067ac3377':
         {'hookRVA': 0x51f15, 'stolen': '4883bc24f000000000', 'caveRVA': 0x80be0, 'wm': 'rsi',
          'resume': 0x51f1e, 'load_path': 0xd0,
@@ -737,6 +750,10 @@ def shell_vars(path):
         'NP_CAVE_ROOM': str(room), 'NP_FILL': f"{r['fill']:#04x}",
         'NP_PLACEMENT': r['placement'],
     }
+    pin = PINNED.get(r['sha256'], {})
+    if pin.get('module_flags_slot') is not None:
+        out['NP_MODULE_FLAGS_SLOT'] = f"{pin['module_flags_slot']:#x}"
+        out['NP_MODULE_FLAGS_BIT'] = str(pin['module_flags_bit'])
     if PINNED.get(r['sha256'], {}).get('payload'):
         out['NP_PAYLOAD_SHA256'] = PINNED[r['sha256']]['payload']
     if r.get('skip') is not None:

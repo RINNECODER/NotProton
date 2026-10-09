@@ -18,9 +18,13 @@ OBJCOPY=x86_64-w64-mingw32-objcopy
 
 CFLAGS="-Os -fno-asynchronous-unwind-tables -ffreestanding -fno-stack-protector"
 
+set --
+if [ -n "${NP_MODULE_FLAGS_SLOT:-}" ]; then
+  set -- "-DMODULE_FLAGS_SLOT=$NP_MODULE_FLAGS_SLOT" "-DMODULE_FLAGS_BIT=$NP_MODULE_FLAGS_BIT"
+fi
 # shellcheck disable=SC2086 # CFLAGS carries several flags and has to split
-"$CC" -c $CFLAGS detour.c -o detour_c.o
-"$CC" -c -x assembler-with-cpp shim.S -o shim.o \
+"$CC" -c $CFLAGS "$@" detour.c -o detour_c.o
+"$CC" -c -x assembler-with-cpp shim.S -o shim.o "$@" \
   "-DWM_REG=$NP_WM" "-DSCRATCH_REG=$NP_SCRATCH" "-DLOAD_PATH_SLOT=$NP_LOAD_PATH" \
   "-DSTOLEN_BYTES=$NP_STOLEN_BYTES"
 "$LD" -T link.ld shim.o detour_c.o -o detour_linked.elf \

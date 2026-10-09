@@ -51,6 +51,27 @@ if [ "$np_flavor" = rosetta ] || [ ! -x "$WINELOADER" ] || [ ! -x "$WINESERVER" 
   WINESERVER="$CX_ROOT/bin/wineserver"
   [ -x "$WINESERVER" ] || WINESERVER="$CX_ROOT/bin/wineserver-x86"
 fi
+# Highball's Wine entrypoint and runtime/renderer overlays live beside its private
+# engine clone. DXMT is the default; D3DMetal is not enabled without Apple's licence.
+np_highball=0
+case "$np_build" in
+  highball-wine11-r23)
+    np_highball=1
+    np_runtime="${CX_ROOT%/CrossOver}"
+    np_frameworks="$np_runtime/frameworks"
+    WINELOADER="$CX_ROOT/bin/wine"
+    WINESERVER="$CX_ROOT/bin/wineserver"
+    export DYLD_FALLBACK_LIBRARY_PATH="$np_frameworks:$np_frameworks/GStreamer.framework/Versions/1.0/lib"
+    export DYLD_FALLBACK_FRAMEWORK_PATH="$np_frameworks"
+    export GST_PLUGIN_PATH="$np_frameworks/GStreamer.framework/Versions/1.0/lib/gstreamer-1.0"
+    export WINEDLLPATH_PREPEND="$np_runtime/renderers/dxmt/wine"
+    export WINEDLLOVERRIDES="${WINEDLLOVERRIDES:+$WINEDLLOVERRIDES;}d3d11,dxgi=n,b"
+    export DXMT_ALLOW_CROSS_PROCESS_SWAPCHAIN=1
+    # Avoid creating a CrossOver user-data folder for a free Wine backend.
+    CX_HOME="$np_runtime"
+    export CX_HOME
+    ;;
+esac
 export WINELOADER WINESERVER
 
 # Keeps Wine from inheriting the prefix and template locks (fd 8 and 9).
@@ -506,6 +527,18 @@ runner_id=""
 in_template_env() {
   prefix="$1"
   shift
+  if [ "${np_highball:-0}" = 1 ]; then
+    without_lock_fds env -i HOME="$HOME" USER="${USER:-}" LOGNAME="${LOGNAME:-}" \
+      TMPDIR="${TMPDIR:-/tmp}" LANG="${LANG:-}" LC_ALL="${LC_ALL:-}" \
+      PATH="$CX_ROOT/bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+      DYLD_FALLBACK_LIBRARY_PATH="$DYLD_FALLBACK_LIBRARY_PATH" \
+      DYLD_FALLBACK_FRAMEWORK_PATH="$DYLD_FALLBACK_FRAMEWORK_PATH" \
+      GST_PLUGIN_PATH="$GST_PLUGIN_PATH" WINEDLLPATH_PREPEND="$WINEDLLPATH_PREPEND" CX_HOME="$CX_HOME" \
+      WINEDLLOVERRIDES="$WINEDLLOVERRIDES" DXMT_ALLOW_CROSS_PROCESS_SWAPCHAIN=1 \
+      WINEDLLPATH="$CX_ROOT/lib/wine/x86_64-windows:$wine_unix" \
+      WINELOADER="$WINELOADER" WINESERVER="$WINESERVER" WINEPREFIX="$prefix" "$@"
+    return $?
+  fi
   without_lock_fds \
     env -i HOME="$HOME" USER="${USER:-}" LOGNAME="${LOGNAME:-}" TMPDIR="${TMPDIR:-/tmp}" \
     LANG="${LANG:-}" LC_ALL="${LC_ALL:-}" \
@@ -1270,7 +1303,11 @@ for f in "$wine_unix"/*; do
   esac
   ln -sfn "$f" "$loader_macos/$base"
 done
-ln "$WINELOADER" "$loader_macos/wine" 2>/dev/null || cp "$WINELOADER" "$loader_macos/wine"
+game_loader="$WINELOADER"
+# The bin/ entrypoint locates Wine through ../lib. Inside a game bundle the
+# unix loader instead finds the runtime libraries linked beside it above.
+[ "${np_highball:-0}" != 1 ] || game_loader="$wine_unix/wine"
+ln "$game_loader" "$loader_macos/wine" 2>/dev/null || cp "$game_loader" "$loader_macos/wine"
 if [ -x "$loader_macos/wine" ]; then
   WINELOADER="$loader_macos/wine"
   echo "loader staged in bundle for game mode" >> "$log" 2>&1 || true
@@ -1359,7 +1396,7 @@ else
   echo "=== client staged no overlay renderer, overlay disabled ===" >> "$log" 2>&1 || true
 fi
 set -- --args "$shim_exe" "$@"
-for name in $(env | sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|Steam[A-Za-z0-9]*|(CX_GRAPHICS|D3DM_|DXMT_|DXVK_|MTL_|ROSETTA_)[A-Z0-9_]*)=.*/\1/p'); do
+for name in $(env | sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|DYLD_FALLBACK_LIBRARY_PATH|DYLD_FALLBACK_FRAMEWORK_PATH|GST_PLUGIN_PATH|WINEDLLPATH_PREPEND|Steam[A-Za-z0-9]*|(CX_GRAPHICS|D3DM_|DXMT_|DXVK_|MTL_|ROSETTA_)[A-Z0-9_]*)=.*/\1/p'); do
   eval "value=\$$name"
   # shellcheck disable=SC2154 # eval assigns value on the line above
   set -- --env "$name=$value" "$@"

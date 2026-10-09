@@ -43,7 +43,16 @@ enum RunnerPatcher {
         var outcome = Outcome()
         outcome.ntdll = try installNtdll(build: build, root: root, bridge: bridge)
         outcome.builtins = try installBuiltins(root: root, bridge: bridge)
-        outcome.loaders = try grantLoaderEntitlement(root: root)
+        if build.provider == .highball {
+            let loader = root.appending(path: "lib/wine/x86_64-unix/wine")
+            if !signatureIsValid(loader) {
+                try keepClean(loader)
+                try SteamInstaller.adHocSign(loader, step: step)
+                outcome.loaders.append(name(of: loader))
+            }
+        } else {
+            outcome.loaders = try grantLoaderEntitlement(root: root)
+        }
         return outcome
     }
 
@@ -77,7 +86,7 @@ enum RunnerPatcher {
             }
         }
 
-        for loader in unixLoaders(in: root) {
+        for loader in unixLoaders(in: root) where build.provider != .highball {
             let granted = entitlements(of: loader)
             if granted?.contains(restrictedEntitlement) == true {
                 if !signatureIsValid(signingTarget(for: loader)) {
@@ -88,6 +97,10 @@ enum RunnerPatcher {
             }
         }
 
+        if build.provider == .highball,
+           !signatureIsValid(root.appending(path: "lib/wine/x86_64-unix/wine")) {
+            wrong.append("Highball Wine loader has a broken signature")
+        }
         return wrong
     }
 

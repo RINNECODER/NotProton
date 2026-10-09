@@ -15,10 +15,11 @@ struct CrossOverInstall: Sendable, Identifiable {
 
     // Selected by the user rather than found on disk by tool.
     var isManual = false
+    var provider: RunnerProvider = .crossOver
 
     var id: String { bundle.path(percentEncoded: false) }
-    var name: String { bundle.deletingPathExtension().lastPathComponent }
-    var crossOverRoot: URL { SupportPaths.crossOverRoot(inBundle: bundle) }
+    var name: String { provider == .highball ? (releaseVersion ?? "Highball \(bundle.lastPathComponent)") : bundle.deletingPathExtension().lastPathComponent }
+    var crossOverRoot: URL { provider == .highball ? bundle.appending(path: "engine") : SupportPaths.crossOverRoot(inBundle: bundle) }
 
     var isPreview: Bool { name.localizedCaseInsensitiveContains("Preview") }
 
@@ -89,7 +90,9 @@ enum CrossOverSource {
             found.append(inspect(bundle: bundle, isManual: isManual))
         }
 
-        for manual in manualBundles() where !isSearched(manual) { consider(manual, isManual: true) }
+        for manual in manualBundles() where !isSearched(manual) {
+            consider(manual, isManual: true)
+        }
 
         for root in searchRoots {
             let entries = (try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []

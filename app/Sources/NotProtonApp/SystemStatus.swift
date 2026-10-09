@@ -27,10 +27,12 @@ struct StatusSnapshot: Sendable {
     var installContent: DeploymentContent.Status = .unchecked
 
     static func capture(bundledVersion: String) -> StatusSnapshot {
-        let installs = CrossOverSource.discover()
+        let installs = HighballSource.discover() + CrossOverSource.discover()
         var licenses: [String: CrossOverLicense.Status] = [:]
         for install in installs where install.isUsable {
-            licenses[install.id] = CrossOverLicense.check(crossOverRoot: install.crossOverRoot)
+            licenses[install.id] = install.provider == .highball
+                ? CrossOverLicense.Status(licensed: true, detail: "Free Highball runtime.", diagnostic: "Highball does not require a CrossOver license")
+                : CrossOverLicense.check(crossOverRoot: install.crossOverRoot)
         }
 
         let runner = RunnerStore.state()
@@ -171,7 +173,9 @@ final class SystemStatus {
     func checkLicense(for chosen: CrossOverInstall? = nil) async -> CrossOverLicense.Status? {
         guard let install = chosen ?? usableCrossOver else { return nil }
         let status = await Task.detached(priority: .userInitiated) {
-            CrossOverLicense.check(crossOverRoot: install.crossOverRoot)
+            install.provider == .highball
+                ? CrossOverLicense.Status(licensed: true, detail: "Free Highball runtime.", diagnostic: "Highball does not require a CrossOver license")
+                : CrossOverLicense.check(crossOverRoot: install.crossOverRoot)
         }.value
         snapshot?.crossOverLicense[install.id] = status
         return status
@@ -255,11 +259,11 @@ final class SystemStatus {
     func addCrossOver() async {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
-        panel.canChooseDirectories = false
+        panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.application]
+        panel.allowedContentTypes = [.application, .folder]
         panel.prompt = "Add"
-        panel.message = "Select a copy of CrossOver."
+        panel.message = "Select a Highball engine folder or a CrossOver app."
         panel.directoryURL = URL(filePath: "/Applications", directoryHint: .isDirectory)
 
         guard panel.runModal() == .OK, let picked = panel.url else { return }
@@ -267,6 +271,16 @@ final class SystemStatus {
         clearFailure()
         outcome = nil
 
+        if FileManager.default.fileExists(atPath: picked.appending(path: "manifest.json").path) {
+            let install = HighballSource.inspect(engine: picked, isManual: true)
+            guard install.isUsable else {
+                setFailure("This Highball engine is not supported or is incomplete. Use Highball Wine 11 r23.")
+                return
+            }
+            CrossOverSource.addManualBundle(picked)
+            await refresh()
+            return
+        }
         guard CrossOverSource.looksLikeCrossOver(picked) else {
             setFailure("\(picked.lastPathComponent) is not a valid copy of CrossOver.")
             AppLog.note("crossOver choice refused: \(picked.path(percentEncoded: false))")
@@ -341,8 +355,8 @@ final class SystemStatus {
 
     private func setUpRunner(from install: CrossOverInstall?, replacingExisting: Bool = false) async {
         guard let install else {
-            setFailure("No supported copy of CrossOver found.")
-            AppLog.note("run refused: no supported CrossOver")
+            setFailure("No supported Wine engine found.")
+            AppLog.note("run refused: no supported Wine engine")
             outcome = nil
             return
         }
@@ -415,7 +429,9 @@ final class SystemStatus {
             let state = await Task.detached(priority: .userInitiated) {
                 (runner: RunnerStore.state(),
                  payload: PayloadInspector.inspect(),
-                 license: install.map { CrossOverLicense.check(crossOverRoot: $0.crossOverRoot) })
+                 license: install.map { $0.provider == .highball
+                    ? CrossOverLicense.Status(licensed: true, detail: "Free Highball runtime.", diagnostic: "Highball runtime")
+                    : CrossOverLicense.check(crossOverRoot: $0.crossOverRoot) })
             }.value
 
             if let install, state.license?.licensed == true, state.runner == .none {

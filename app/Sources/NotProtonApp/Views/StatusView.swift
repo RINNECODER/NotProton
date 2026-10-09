@@ -344,13 +344,13 @@ struct StatusView: View {
             Section {
                 crossOverSection(snapshot)
             } header: {
-                Text("CrossOver")
+                Text("Wine Engines")
             } footer: {
                 HStack {
                     Spacer()
-                    Button("Add CrossOver\u{2026}") { Task { await status.addCrossOver() } }
+                    Button("Add Engine\u{2026}") { Task { await status.addCrossOver() } }
                         .disabled(!status.isIdle)
-                        .help("Add a copy of CrossOver from another folder.")
+                        .help("Add a Highball engine folder or CrossOver app.")
                 }
             }
 
@@ -606,7 +606,7 @@ struct StatusView: View {
             if path.count > 1, path.hasSuffix("/") { path.removeLast() }
             lines.append(path)
         } else if row.copy != .unsupported {
-            lines.append("CrossOver app not found.")
+            lines.append(row.build?.provider == .highball ? "Highball engine not found." : "CrossOver app not found.")
         }
         return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }

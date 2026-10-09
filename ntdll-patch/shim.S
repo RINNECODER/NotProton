@@ -33,6 +33,10 @@ shim_entry3:
     lea     rcx, [rsp+0x38]         // &ctx 
     mov     rdx, WM_REG             // wm 
     mov     r8, SCRATCH_REG         // load_path 
+#ifdef MODULE_FLAGS_SLOT
+    // r10 points 80 bytes below the original frame after the ten saved registers.
+    lea     r9, [r10 + MODULE_FLAGS_SLOT + 80]
+#endif
     call    detour_build_module
     mov     rsp, [rsp+0x58]         // restore pre-align rsp 
     pop     r11
