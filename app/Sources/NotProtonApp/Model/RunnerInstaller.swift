@@ -29,7 +29,13 @@ enum RunnerInstaller {
             let staging = target.deletingLastPathComponent()
                 .appending(path: ".\(target.lastPathComponent).new")
             try? fm.removeItem(at: staging)
-            try copyPayload(from: install.crossOverRoot, to: staging)
+            if install.provider == .highball {
+                try HighballSource.clone(from: install, to: staging)
+            } else {
+                try copyPayload(from: install.crossOverRoot, to: staging)
+            }
+            // Validate the staged copy before replacing a working private runner.
+            try verifyClone(build: build, root: staging.appending(path: "CrossOver"))
             if occupied {
                 try fm.removeItem(at: target)
             }

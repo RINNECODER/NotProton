@@ -9,6 +9,15 @@ This tool is intended to be used with Steam Client 1788652215 or 1790121765 and 
 20261006 or 2026082**. Both the FEX and the Rosetta versions are supported. I recommend using the FEX version of the 
 Preview 20261006, as it includes both the FEX version as well as the Rosetta one. 
 
+This fork also supports the free [Highball](https://github.com/gauthierpiarrette/Highball)
+Wine 11 engine `x64-crossover26.3-r23` on Apple Silicon with Rosetta. Install that
+engine through Highball, then open NotProton and select **Set Up Compatibility Tool**.
+In Steam, select **Highball Wine 11 r23 — Rosetta** for the game's compatibility tool.
+NotProton copies the complete engine into its own runner directory; it does not
+change Highball's bottles or source engine. This path uses DXMT and requires no
+CrossOver activation. Wine 10 and other engine builds are not supported by this port.
+Automatic app updates are disabled in this fork so an upstream build cannot replace it.
+
 The macOS app itself is located in the ```app``` folder. The core logic is in ```dylib```.
 ```lsteamclient``` is a macOS port of Valve's lsteamclient. ```steam-shim```is a port of Valve's
 steam-helper from Proton 9. ntdll-patch patches the copy of CrossOver that the app

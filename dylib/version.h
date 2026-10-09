@@ -2,6 +2,6 @@
 #ifndef NOTPROTON_VERSION_H
 #define NOTPROTON_VERSION_H
 
-#define NOTPROTON_VERSION "1.1.3"
+#define NOTPROTON_VERSION "1.1.3-highball.1"
 
 #endif // NOTPROTON_VERSION_H

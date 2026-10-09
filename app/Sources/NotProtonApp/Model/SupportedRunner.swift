@@ -11,6 +11,11 @@ enum WineArch: String, Sendable, CaseIterable {
     case aarch64Windows = "aarch64-windows"
 }
 
+enum RunnerProvider: Sendable {
+    case crossOver
+    case highball
+}
+
 struct RunnerBuild: Sendable, Equatable, Identifiable {
     // CFBundleVersion, which also names the directory under runners/ and keys
     // the ntdll hash tables. Changing it orphans an installed runner.
@@ -31,6 +36,7 @@ struct RunnerBuild: Sendable, Equatable, Identifiable {
     var tools: [CompatTool] = []
 
     var rebuilds: [RunnerRebuild] = []
+    var provider: RunnerProvider = .crossOver
 
     var id: String { flavor.map { "\(bundleVersion)-\($0)" } ?? bundleVersion }
 
@@ -40,7 +46,7 @@ struct RunnerBuild: Sendable, Equatable, Identifiable {
         return RunnerBuild(
             bundleVersion: bundleVersion, releaseVersion: releaseVersion, flavor: flavor,
             loaderSHA256: rebuild.loaderSHA256, cleanNtdll: rebuild.cleanNtdll,
-            patchedNtdll: rebuild.patchedNtdll, tools: tools, rebuilds: rebuilds
+            patchedNtdll: rebuild.patchedNtdll, tools: tools, rebuilds: rebuilds, provider: provider
         )
     }
 
@@ -88,7 +94,7 @@ enum SupportedRunners {
     // First entry is what windows-only games get when Steam has no mapping.
     static let toolPreference = [
         legacyToolName, "notproton-fex", "notproton-fex-rosetta", "notproton-preview",
-        "notproton-fex-41069", "notproton-fex-rosetta-41069", "notproton-preview-41069", "notproton-26.3",
+        "notproton-fex-41069", "notproton-fex-rosetta-41069", "notproton-preview-41069", "notproton-26.3", "notproton-highball",
     ]
 
     static let legacyToolName = "notproton"
@@ -124,6 +130,7 @@ enum SupportedRunners {
     }
 
     static let all: [RunnerBuild] = [
+        HighballSource.build,
         RunnerBuild(
             bundleVersion: "26.3.0.39832",
             releaseVersion: "26.3",

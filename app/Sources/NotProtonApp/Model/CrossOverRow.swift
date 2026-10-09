@@ -23,7 +23,7 @@ struct CrossOverRow: Identifiable, Equatable {
 
     var title: String {
         if let install { return install.name }
-        return "CrossOver \(SupportedRunners.displayVersion(forID: buildID))"
+        return build?.provider == .highball ? SupportedRunners.displayVersion(forID: buildID) : "CrossOver \(SupportedRunners.displayVersion(forID: buildID))"
     }
 
     var canSetUp: Bool { install != nil && unsupportedVersion == nil }

@@ -1,3 +1,4 @@
+import Foundation
 import Sparkle
 
 @MainActor
@@ -5,11 +6,13 @@ final class AppUpdater {
 
     private let controller: SPUStandardUpdaterController
 
+    var available: Bool { Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil }
+
     init() {
         #if DEBUG
         let scheduling = false
         #else
-        let scheduling = true
+        let scheduling = Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil
         #endif
         controller = SPUStandardUpdaterController(
             startingUpdater: scheduling,
@@ -20,7 +23,7 @@ final class AppUpdater {
 
     func check() {
         #if !DEBUG
-        controller.checkForUpdates(nil)
+        if available { controller.checkForUpdates(nil) }
         #endif
     }
 }
